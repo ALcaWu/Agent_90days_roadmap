@@ -29,7 +29,7 @@ print("=" * 50)
 
 # 检查是否有API Key
 api_key = os.getenv("OPENAI_API_KEY")
-
+print(f"API Key: {api_key}")
 if not api_key:
     # 没有API Key时，使用演示模式
     print("提示: 未设置 OPENAI_API_KEY，展示配置参数")
