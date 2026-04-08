@@ -45,10 +45,9 @@ print("\n" + "=" * 50)
 print("2. 模型工厂函数")
 print("=" * 50)
 
+
 def create_chat_model(
-    provider: str = "openai",
-    model: str = "gpt-3.5-turbo",
-    **kwargs
+    provider: str = "openai", model: str = "gpt-3.5-turbo", **kwargs
 ) -> Optional[object]:
     """
     统一的模型创建函数
@@ -64,6 +63,7 @@ def create_chat_model(
     if provider == "openai":
         try:
             from langchain_openai import ChatOpenAI
+
             return ChatOpenAI(model=model, **kwargs)
         except ImportError:
             print("请安装: pip install langchain-openai")
@@ -72,6 +72,7 @@ def create_chat_model(
     elif provider == "anthropic":
         try:
             from langchain_anthropic import ChatAnthropic
+
             # Claude 使用 anthropic- 开头的模型名
             return ChatAnthropic(model=model, **kwargs)
         except ImportError:
@@ -81,6 +82,7 @@ def create_chat_model(
     elif provider == "huggingface":
         try:
             from langchain_community.chat_models import ChatHuggingFace
+
             return ChatHuggingFace(model=model, **kwargs)
         except ImportError:
             print("请安装: pip install langchain-community")
@@ -138,6 +140,7 @@ print("\n" + "=" * 50)
 print("4. 模型对比工具")
 print("=" * 50)
 
+
 class ModelComparator:
     """简单的模型对比工具"""
 
@@ -149,7 +152,7 @@ class ModelComparator:
         self.results[model_name] = {
             "response": response,
             "time": time_taken,
-            "length": len(response)
+            "length": len(response),
         }
 
     def compare(self):
@@ -167,7 +170,8 @@ class ModelComparator:
 # 演示
 comparator = ModelComparator()
 print("ModelComparator 用法示例:")
-print("""
+print(
+    """
 comparator = ModelComparator()
 
 # 添加各个模型的结果
@@ -176,7 +180,8 @@ comparator.add_result("gpt-4", "回复内容2", 3.2)
 
 # 对比结果
 comparator.compare()
-""")
+"""
+)
 
 
 # ==================== 5. 模型选择策略 ====================
@@ -259,9 +264,12 @@ available_models = []
 if os.getenv("OPENAI_API_KEY"):
     try:
         from langchain_openai import ChatOpenAI
+
         chat = ChatOpenAI()
         available_models.append(f"OpenAI: {chat.model_name}")
     except:
         pass
 
-print(f"当前可用模型: {available_models if available_models else '无（需要配置API Key）'}")
+print(
+    f"当前可用模型: {available_models if available_models else '无（需要配置API Key）'}"
+)

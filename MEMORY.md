@@ -4,7 +4,7 @@
 - 第2个月：Agent架构与RAG技术（RAG技术栈、Agent架构设计、LangGraph多Agent系统）。
 - 第3个月：项目实战与面试准备（企业级项目实战、进阶主题、面试准备）。
 - 课程学习目录：`D:\AgentDeveloperCourse\`。
-- 当前进度：Week01 Day07已完成（全部7天完成），准备开始Week02。
+- 当前进度：Week02 Day10已完成（全部10天完成），准备开始Day11。
 - 课程大纲已展开：`课程大纲.md` 现包含完整的 Day01-Day84 每日计划（84天，3个月）。
   - Week01（Day01-07）：Python核心速成 ✅
   - Week02（Day08-14）：LangChain核心概念

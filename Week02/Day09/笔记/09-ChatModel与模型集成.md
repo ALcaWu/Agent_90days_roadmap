@@ -108,8 +108,10 @@ chat = ChatHuggingFace()
 
 ## 五、学习心得
 
-_（学习完成后填写）_
+1. **ChatModel vs LLM 的本质区别**：LLM 接收纯文本字符串，而 ChatModel 接收有角色语义的消息列表（HumanMessage / SystemMessage / AIMessage）。ChatModel 更贴近现代对话 AI 的使用方式，也是实际开发中的首选，`SystemMessage` 让我们可以精准控制模型的行为边界。
 
-1.
-2.
-3.
+2. **LangChain 统一接口的工程价值**：无论是 OpenAI、Anthropic（Claude）还是 HuggingFace，`invoke(messages)` 的调用方式完全一致。这让业务代码与具体模型提供商完全解耦——今天用 gpt-3.5-turbo，明天换 Claude 只需改一行配置，这是 LangChain 最核心的设计思想之一。
+
+3. **模型工厂模式（`create_chat_model`）的意义**：通过工厂函数统一创建入口，实现"配置驱动"的模型选择，可以根据不同环境（开发/生产）或成本要求动态切换模型，避免硬编码。这也让练习题中的 `ConversationManager` 与具体模型完全解耦，是可扩展设计的雏形。
+
+4. **模型选择的成本意识很重要**：gpt-3.5-turbo 与 gpt-4 之间约有 15 倍的成本差距。开发调试阶段使用便宜模型、在生产关键路径上才升级强模型，这不只是省钱，更是产品上线后维持可持续运营的关键工程决策。
