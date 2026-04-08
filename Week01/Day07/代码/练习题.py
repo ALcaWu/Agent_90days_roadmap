@@ -17,6 +17,7 @@ from typing import List, Dict, Optional
 # 任务：根据场景描述，返回正确的Git命令字符串
 # 不需要真正执行，只需返回正确的命令字符串
 
+
 def git_command_for(scenario: str) -> str:
     """
     根据场景返回对应的Git命令
@@ -37,6 +38,8 @@ def git_command_for(scenario: str) -> str:
         对应的Git命令字符串
     """
     # TODO: 实现此函数
+    "git init"
+    "git stage ."
     # 提示：用字典映射 scenario → 命令字符串
     pass
 
@@ -44,6 +47,7 @@ def git_command_for(scenario: str) -> str:
 # ==================== 练习2：.gitignore规则判断 ====================
 # 任务：判断给定文件路径是否应该被gitignore忽略
 # 根据AI项目的标准规则判断
+
 
 def should_ignore(filepath: str) -> bool:
     """
@@ -70,6 +74,7 @@ def should_ignore(filepath: str) -> bool:
 
 # ==================== 练习3：对话历史管理器 ====================
 # 任务：实现一个带token预算的对话历史管理器
+
 
 class BudgetedHistory:
     """
@@ -119,6 +124,7 @@ class BudgetedHistory:
 # ==================== 练习4：AI回复解析器 ====================
 # 任务：从AI回复文本中提取结构化信息
 
+
 def parse_ai_reply(text: str) -> dict:
     """
     解析AI回复，提取结构化信息
@@ -146,6 +152,7 @@ def parse_ai_reply(text: str) -> dict:
 
 # ==================== 单元测试（不要修改） ====================
 
+
 class TestGitCommands(unittest.TestCase):
 
     def test_init(self):
@@ -167,7 +174,9 @@ class TestGitCommands(unittest.TestCase):
         self.assertEqual(git_command_for("undo_commit"), "git reset --soft HEAD~1")
 
     def test_new_branch(self):
-        self.assertEqual(git_command_for("new_branch"), "git checkout -b feature/week02")
+        self.assertEqual(
+            git_command_for("new_branch"), "git checkout -b feature/week02"
+        )
 
 
 class TestShouldIgnore(unittest.TestCase):
@@ -207,23 +216,23 @@ class TestBudgetedHistory(unittest.TestCase):
 
     def test_system_always_kept(self):
         h = BudgetedHistory(max_tokens=10)
-        h.add("system", "你是助手")       # ~2 tokens
-        h.add("user", "a" * 100)          # 25 tokens，超出预算
+        h.add("system", "你是助手")  # ~2 tokens
+        h.add("user", "a" * 100)  # 25 tokens，超出预算
         msgs = h.get_messages()
         roles = [m["role"] for m in msgs]
         self.assertIn("system", roles)
 
     def test_evict_oldest_non_system(self):
         h = BudgetedHistory(max_tokens=20)
-        h.add("user", "a" * 40)           # 10 tokens
-        h.add("assistant", "b" * 40)      # 10 tokens，共20，刚好
-        h.add("user", "c" * 40)           # 再加10，超出，应删除第一条user
+        h.add("user", "a" * 40)  # 10 tokens
+        h.add("assistant", "b" * 40)  # 10 tokens，共20，刚好
+        h.add("user", "c" * 40)  # 再加10，超出，应删除第一条user
         msgs = h.get_messages()
         self.assertEqual(len(msgs), 2)
 
     def test_token_usage(self):
         h = BudgetedHistory(max_tokens=100)
-        h.add("user", "a" * 40)           # 10 tokens
+        h.add("user", "a" * 40)  # 10 tokens
         usage = h.token_usage()
         self.assertEqual(usage["used"], 10)
         self.assertEqual(usage["max"], 100)
@@ -254,7 +263,7 @@ class TestParseAiReply(unittest.TestCase):
         self.assertFalse(result["has_list"])
 
     def test_word_count(self):
-        text = "hello world"   # 去掉空格后10个字符
+        text = "hello world"  # 去掉空格后10个字符
         result = parse_ai_reply(text)
         self.assertEqual(result["word_count"], 10)
 

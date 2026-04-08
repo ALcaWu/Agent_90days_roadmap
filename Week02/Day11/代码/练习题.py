@@ -46,6 +46,20 @@ def build_sentiment_few_shot() -> FewShotPromptTemplate:
     #   1. 定义 examples（包含 input 和 output 键）
     #   2. 定义 example_prompt（格式：输入：{input}\n{output}）
     #   3. 返回 FewShotPromptTemplate
+    example_prompt = PromptTemplate.from_template("输入：{input}\n输出：{output}")
+    examples = [
+        {"input": "我非常喜欢这个产品", "output": "正面"},
+        {"input": "这个产品非常差", "output": "负面"},
+        {"input": "这个产品非常一般", "output": "中性"},
+    ]
+    fewShot = FewShotPromptTemplate(
+        example_prompt=example_prompt,
+        examples=examples,
+        prefix="请根据以下示例给出评价：\n",
+        suffix="输入：{text}\n输出：",
+        input_variables=["text"],
+    )
+    return fewShot
     pass
 
 
@@ -55,13 +69,18 @@ def build_sentiment_few_shot() -> FewShotPromptTemplate:
 
 class BookInfo(BaseModel):
     """书籍信息"""
+
     # TODO：定义以下字段
     # title: str（书名）
     # author: str（作者）
     # year: int（出版年份）
     # genres: List[str]（类型标签列表）
     # rating: float（评分，0-10）
-    pass
+    title: str = Field(description="书名")
+    author: str = Field(description="作者")
+    year: int = Field(description="出版年份")
+    genres: List[str] = Field(description="类型标签列表")
+    rating: float = Field(description="评分，0-10")
 
 
 def parse_book_info(json_str: str) -> Optional[BookInfo]:
@@ -79,7 +98,18 @@ def parse_book_info(json_str: str) -> Optional[BookInfo]:
     #   1. 创建 PydanticOutputParser(pydantic_object=BookInfo)
     #   2. 调用 parser.invoke(json_str)
     #   3. 捕获异常，返回 None
-    pass
+    # # ❌ 原答案：parser.invoke() 在 try 外面，无效JSON时异常无法被捕获
+    # parser = PydanticOutputParser(pydantic_object=BookInfo)
+    # parser.invoke(json_str)
+    # try:
+    #     return parser.parse(json_str)
+    # except Exception:
+    #     return None
+    try:
+        parser = PydanticOutputParser(pydantic_object=BookInfo)
+        return parser.invoke(json_str)
+    except Exception:
+        return None
 
 
 # ==================== 练习3：CommaSeparatedListOutputParser ====================
@@ -97,7 +127,13 @@ def parse_skills_list(text: str) -> List[str]:
         技能列表（去除首尾空格）
     """
     # TODO：使用 CommaSeparatedListOutputParser 解析
-    pass
+    # # ❌ 原答案：硬编码了输入，忽略了函数参数 text
+    # parser = comma.invoke("Python, LangChain, FastAPI")
+    # return parser
+    # # ❌ 只调用 comma.invoke()，CommaSeparatedListOutputParser 不会自动去除首尾空格
+    # return comma.invoke(text)
+    comma = CommaSeparatedListOutputParser()
+    return [s.strip() for s in comma.invoke(text)]
 
 
 # ==================== 练习4：RunnableParallel 并行链 ====================
@@ -107,7 +143,7 @@ def parse_skills_list(text: str) -> List[str]:
 def build_text_analyzer():
     """
     构建一个并行文本分析器
-    
+
     返回一个 RunnableParallel，同时执行：
     - word_count：统计空格分隔的单词数
     - is_chinese：判断是否包含中文（bool）
@@ -120,7 +156,16 @@ def build_text_analyzer():
     # 提示：
     #   1. 定义3个 lambda 函数
     #   2. 使用 RunnableParallel(key=RunnableLambda(fn)) 组合
-    pass
+    # # ❌ 原答案："中文" in x 只能检测字面量"中文"，检测不到普通中文字符
+    # is_chinese=RunnableLambda(lambda x: "中文" in x),
+    import re
+
+    runnable = RunnableParallel(
+        word_count=RunnableLambda(lambda x: len(x.split())),
+        is_chinese=RunnableLambda(lambda x: bool(re.search(r"[\u4e00-\u9fff]", x))),
+        length=RunnableLambda(lambda x: len(x)),
+    )
+    return runnable
 
 
 # ==================== 单元测试（不要修改）====================
@@ -137,7 +182,7 @@ class TestSentimentFewShot(unittest.TestCase):
         template = build_sentiment_few_shot()
         self.assertIsNotNone(template)
         # 应该有至少3个示例
-        if hasattr(template, 'examples') and template.examples:
+        if hasattr(template, "examples") and template.examples:
             self.assertGreaterEqual(len(template.examples), 3)
 
     def test_can_invoke(self):
@@ -160,13 +205,16 @@ class TestBookInfo(unittest.TestCase):
             self.assertIn(field, fields, f"BookInfo 缺少字段：{field}")
 
     def test_parse_valid_book(self):
-        book_json = json.dumps({
-            "title": "Python编程：从入门到实践",
-            "author": "Eric Matthes",
-            "year": 2016,
-            "genres": ["编程", "Python", "入门"],
-            "rating": 9.0
-        }, ensure_ascii=False)
+        book_json = json.dumps(
+            {
+                "title": "Python编程：从入门到实践",
+                "author": "Eric Matthes",
+                "year": 2016,
+                "genres": ["编程", "Python", "入门"],
+                "rating": 9.0,
+            },
+            ensure_ascii=False,
+        )
         book = parse_book_info(book_json)
         self.assertIsNotNone(book, "有效 JSON 应该成功解析")
         self.assertEqual(book.title, "Python编程：从入门到实践")
