@@ -13,16 +13,11 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import (
     FewShotPromptTemplate,
     PromptTemplate,
-    FewShotChatMessagePromptTemplate,
-    ChatPromptTemplate,
 )
 from langchain_core.output_parsers import (
-    StrOutputParser,
-    JsonOutputParser,
     CommaSeparatedListOutputParser,
     PydanticOutputParser,
 )
-from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableLambda, RunnableParallel
 
 
@@ -52,15 +47,14 @@ def build_sentiment_few_shot() -> FewShotPromptTemplate:
         {"input": "这个产品非常差", "output": "负面"},
         {"input": "这个产品非常一般", "output": "中性"},
     ]
-    fewShot = FewShotPromptTemplate(
+    few_shot = FewShotPromptTemplate(
         example_prompt=example_prompt,
         examples=examples,
         prefix="请根据以下示例给出评价：\n",
         suffix="输入：{text}\n输出：",
         input_variables=["text"],
     )
-    return fewShot
-    pass
+    return few_shot
 
 
 # ==================== 练习2：使用 PydanticOutputParser ====================

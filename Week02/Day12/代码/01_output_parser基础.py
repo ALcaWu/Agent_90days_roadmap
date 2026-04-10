@@ -6,12 +6,10 @@ Day 12 - 代码示例 1：Output Parser 基础
 from langchain_core.output_parsers import (
     StrOutputParser,
     JsonOutputParser,
-    JsonLinesOutputParser,
     CommaSeparatedListOutputParser,
-    DatetimeOutputParser,
-    EnumOutputParser,
+    PydanticOutputParser,
 )
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import datetime
@@ -56,75 +54,91 @@ print(f"姓名: {result['name']}, 年龄: {result['age']}")
 print()
 
 # =============================================
-# 3. JsonLinesOutputParser - JSON Lines 解析器
+# 3. CommaSeparatedListOutputParser - 逗号分隔列表解析器
 # =============================================
 print("=" * 50)
-print("3. JsonLinesOutputParser 示例")
+print("3. CommaSeparatedListOutputParser 示例")
 print("=" * 50)
 
-jsonlines_parser = JsonLinesOutputParser()
+comma_list_parser = CommaSeparatedListOutputParser()
 
-llm_output = '{"name": "Alice", "score": 95}\n{"name": "Bob", "score": 87}\n{"name": "Charlie", "score": 92}'
-result = jsonlines_parser.parse(llm_output)
-print(f"输入: {llm_output}")
-print(f"输出: {result}")
-print(f"类型: {type(result)}")
-print()
-
-# =============================================
-# 4. CommaSeparatedListOutputParser - 列表分隔解析器
-# =============================================
-print("=" * 50)
-print("4. CommaSeparatedListOutputParser 示例")
-print("=" * 50)
-
-list_parser = CommaSeparatedListOutputParser()
-
-result = list_parser.parse("Apple, Banana, Cherry, Date, Elderberry")
+result = comma_list_parser.parse("Apple, Banana, Cherry, Date, Elderberry")
 print(f"输入: 'Apple, Banana, Cherry, Date, Elderberry'")
 print(f"输出: {result}")
 print(f"类型: {type(result)}")
 print()
 
 # =============================================
-# 5. DatetimeOutputParser - 日期时间解析器
+# 4. MarkdownListOutputParser - Markdown 列表解析器
 # =============================================
 print("=" * 50)
-print("5. DatetimeOutputParser 示例")
+print("4. MarkdownListOutputParser 示例")
 print("=" * 50)
 
-datetime_parser = DatetimeOutputParser()
+from langchain_core.output_parsers import MarkdownListOutputParser
 
-result = datetime_parser.parse("2024-06-15T14:30:00")
-print(f"输入: '2024-06-15T14:30:00'")
+markdown_list_parser = MarkdownListOutputParser()
+
+result = markdown_list_parser.parse("- Apple\n- Banana\n- Cherry\n- Date")
+print(f"输入: '- Apple\\n- Banana\\n- Cherry\\n- Date'")
 print(f"输出: {result}")
 print(f"类型: {type(result)}")
-print(f"年份: {result.year}, 月份: {result.month}, 日: {result.day}")
 print()
 
 # =============================================
-# 6. EnumOutputParser - 枚举解析器
+# 5. NumberedListOutputParser - 编号列表解析器
 # =============================================
 print("=" * 50)
-print("6. EnumOutputParser 示例")
+print("5. NumberedListOutputParser 示例")
 print("=" * 50)
 
-class Status(Enum):
-    PENDING = "待处理"
-    IN_PROGRESS = "进行中"
-    COMPLETED = "已完成"
-    CANCELLED = "已取消"
+from langchain_core.output_parsers import NumberedListOutputParser
 
-enum_parser = EnumOutputParser(enum=Status)
+numbered_list_parser = NumberedListOutputParser()
 
-# 测试不同的输入
-test_inputs = ["待处理", "进行中", "已完成", "已取消"]
-for inp in test_inputs:
-    try:
-        result = enum_parser.parse(inp)
-        print(f"输入: '{inp}' -> 输出: {result} (类型: {type(result)})")
-    except Exception as e:
-        print(f"输入: '{inp}' -> 错误: {e}")
+result = numbered_list_parser.parse("1. 第一步\n2. 第二步\n3. 第三步")
+print(f"输入: '1. 第一步\\n2. 第二步\\n3. 第三步'")
+print(f"输出: {result}")
+print(f"类型: {type(result)}")
+print()
+
+# =============================================
+# 6. XML 解析（手动实现，不依赖 defusedxml）
+# =============================================
+# 注意：langchain_core 的 XMLOutputParser.parse() 在新版本要求安装 defusedxml。
+# 如需使用：pip install defusedxml
+# 此处改用标准库 xml.etree.ElementTree 演示相同的解析效果。
+print("=" * 50)
+print("6. XML 解析示例（标准库实现）")
+print("=" * 50)
+
+import xml.etree.ElementTree as ET
+
+def parse_xml_to_dict(text: str) -> dict:
+    """从 XML 文本中提取 <root> 内容，返回字典"""
+    import re
+    match = re.search(r'<root>(.*?)</root>', text, re.DOTALL)
+    xml_str = f"<root>{match.group(1)}</root>" if match else text.strip()
+
+    def elem_to_dict(elem):
+        result = {}
+        for child in elem:
+            result[child.tag] = child.text if len(child) == 0 else elem_to_dict(child)
+        return result
+
+    root = ET.fromstring(xml_str)
+    return elem_to_dict(root)
+
+xml_output = '''<root>
+    <name>张三</name>
+    <age>28</age>
+    <city>北京</city>
+</root>'''
+
+result = parse_xml_to_dict(xml_output)
+print(f"输入: {xml_output}")
+print(f"输出: {result}")
+print(f"类型: {type(result)}")
 print()
 
 # =============================================
@@ -139,11 +153,8 @@ print(json_parser.get_format_instructions())
 print()
 
 print("CommaSeparatedListOutputParser 格式指令:")
-print(list_parser.get_format_instructions())
-print()
-
-print("DatetimeOutputParser 格式指令:")
-print(datetime_parser.get_format_instructions())
+comma_parser = CommaSeparatedListOutputParser()
+print(comma_parser.get_format_instructions())
 print()
 
 # =============================================
@@ -161,18 +172,16 @@ class WeatherInfo(BaseModel):
     humidity: int = Field(description="湿度百分比", ge=0, le=100)
 
 # 创建带格式指令的提示模板
-from langchain_core.output_parsers import PydanticOutputParser
-
 weather_parser = PydanticOutputParser(pydantic_object=WeatherInfo)
 
 weather_prompt = PromptTemplate.from_template(
     """请提供{city}的天气信息。
 
-{format_instructions}
+    {format_instructions}
 
-城市：{city}""",
-    partial_variables={"format_instructions": weather_parser.get_format_instructions()}
-)
+    城市：{city}""",
+        partial_variables={"format_instructions": weather_parser.get_format_instructions()}
+    )
 
 print("提示模板:")
 print(weather_prompt.format(city="北京"))
@@ -183,35 +192,35 @@ print(weather_parser.get_format_instructions())
 print()
 
 # =============================================
-# 9. Parser 的 parse_with_retry 方法
+# 9. 异常处理与手动重试（替代已废弃的 RetryOutputParser）
 # =============================================
+# 注意：RetryOutputParser 已从 langchain_core 中移除。
+# 在实际应用中，可通过 try-except 配合 LLM 调用重试来实现相同效果。
+# 如需自动重试功能，可参考 langchain 的 OutputFixingParser。
 print("=" * 50)
-print("9. parse_with_retry 方法")
+print("9. 异常处理与手动重试演示")
 print("=" * 50)
 
-from langchain_core.output_parsers import RetryOutputParser
+def parse_with_retry(parser, text: str, max_retries: int = 3):
+    """手动实现解析重试逻辑"""
+    for attempt in range(1, max_retries + 1):
+        try:
+            return parser.parse(text)
+        except Exception as e:
+            print(f"  第 {attempt} 次尝试失败: {type(e).__name__}")
+            if attempt == max_retries:
+                print(f"  已达最大重试次数 {max_retries}，放弃解析")
+                return None
 
-# 基本 JSON Parser
-base_json_parser = JsonOutputParser()
+# 测试：有效 JSON
+good_output = '{"name": "测试", "value": 100}'
+result = parse_with_retry(json_parser, good_output)
+print(f"有效 JSON 解析结果: {result}")
 
-# 包装为带重试的 Parser
-retry_parser = RetryOutputParser(
-    parser=base_json_parser,
-    max_retries=3,
-    retry_on_parse_error=True
-)
-
-# 模拟有格式问题的输出
-bad_output = '''
-这是一个无效的 JSON 输出。
-没有正确的 JSON 格式。
-'''
-
-try:
-    result = retry_parser.parse(bad_output)
-    print(f"结果: {result}")
-except Exception as e:
-    print(f"重试后仍然失败: {type(e).__name__}")
+# 测试：无效 JSON
+bad_output = "这是一个无效的 JSON 输出。"
+result = parse_with_retry(json_parser, bad_output, max_retries=3)
+print(f"无效 JSON 最终结果: {result}")
 print()
 
 print("=" * 50)
