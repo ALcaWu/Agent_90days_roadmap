@@ -746,8 +746,37 @@ BaseOutputParser
 ### 练习 4：带重试的错误处理
 使用 RetryOutputParser 实现一个健壮的 JSON 解析链。
 
+
 ### 练习 5：综合实战 - 简历解析
 完整实现一个简历解析系统，支持提取教育经历、工作经验、技能等。
+
+---
+
+## 九、学习心得
+
+### 核心收获
+
+1. **Output Parser 的本质是翻译器**：把 LLM 的自由文本"翻译"成程序能直接用的结构化数据。它处于 LCEL 链的最末端，角色很清晰——输入是文本，输出是 dict/Pydantic 对象。
+
+2. **`PydanticOutputParser` 是生产首选**：内置的 `JsonOutputParser` 只能拿到 dict，无法做运行时类型验证；`PydanticOutputParser` 则用 Pydantic 的 Field 约束在解析阶段就做类型检查，出了问题早发现。配合嵌套模型，能优雅地处理复杂数据结构（简历、订单、医疗报告等）。
+
+3. **自定义 Parser 继承 `BaseOutputParser` 非常简洁**：只需要实现两个方法——`parse()` 做核心解析逻辑，`get_format_instructions()` 告诉 LLM 应该输出什么格式。正则表达式在这里用得很多。
+
+4. **`RetryOutputParser` 已从 `langchain_core` 移除**：笔记里写的是旧 API，实际使用时这个类已经不存在了。现代替代方案是手写一个 `parse_with_retry()` 函数，用 try-except 包裹 + 循环即可，逻辑完全等价且更可控。写代码时不能盲目相信笔记，需要对照实际版本验证。
+
+5. **`XMLOutputParser` 依赖外部库**：`langchain_core` 的 `XMLOutputParser` 内部依赖 `defusedxml`，不装这个包就会报 `ImportError`。实际项目中用标准库的 `xml.etree.ElementTree` 手动解析即可，效果一样，还省掉一个依赖。
+
+### 练习3的关键点
+
+练习3实现自定义 Markdown 任务列表解析器时，核心是正则分组 + 字符串截取：
+
+- 用 `re.match(r'^\s*-\s+\[([ x])\]\s+(.+)$', line)` 提取完成状态和任务内容
+- **提取优先级和日期之后，要用切片把这两个部分从 title 里删掉**：`content = content[:priority_match.start()].strip()`
+- 否则 title 里会残留 `[高]` 和 `2024-06-20`，影响后续展示
+
+### 踩过的坑
+
+- **PyCharm + 损坏文件**：PyCharm 的 pytest 集成在收集阶段会扫描所有 `__init__.py`，如果某个路径的安全描述符损坏（WinError 1337），pytest 会直接崩溃，错误堆栈指向 `pathlib.is_file()`，但项目里根本找不到这个文件——这是 IDE 层的权限问题，不是代码问题。重装路径、重启 IDE 都无效，只能修复目标文件的权限或删除损坏目录。
 
 ---
 
