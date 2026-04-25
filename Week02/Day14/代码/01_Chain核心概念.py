@@ -23,6 +23,7 @@
 3. LCEL 管道符原理
 """
 
+
 # ============================================================
 # 一、不用 Chain 的问题
 # ============================================================
@@ -79,7 +80,7 @@ def demo_lcel_pipeline():
     """
     # 这是 LCEL 的核心模式（伪代码演示）
     print("[LCEL 管道原理]")
-    print("  输入: {\"topic\": \"Python\"}")
+    print('  输入: {"topic": "Python"}')
     print("  Step 1: template.invoke()  → PromptValue")
     print("  Step 2: llm.invoke()      → AIMessage")
     print("  Step 3: parser.invoke()   → str 结果")

@@ -27,7 +27,9 @@ import unittest
 # ============================================================
 # 题目数据
 # ============================================================
-ENGLISH_TEXT = "Python is a high-level programming language widely used in AI and data science."
+ENGLISH_TEXT = (
+    "Python is a high-level programming language widely used in AI and data science."
+)
 ARTICLE_TEXT = "LangChain is an open-source framework for building applications powered by large language models."
 
 
@@ -59,11 +61,22 @@ ARTICLE_TEXT = "LangChain is an open-source framework for building applications 
 
 def exercise_1() -> str:
     """练习 1：LCEL 管道组合翻译 Chain"""
+    from langchain_core.prompts import PromptTemplate
+    from langchain_openai import ChatOpenAI
+    from langchain_core.output_parsers import StrOutputParser
+    from dotenv import load_dotenv, find_dotenv
+
+    load_dotenv(find_dotenv())
+
     if not os.getenv("OPENAI_API_KEY"):
         return "[跳过] 未设置 OPENAI_API_KEY"
 
     # TODO：完成以下代码
-    pass
+    llm = ChatOpenAI(model="MiniMax-M2.7")
+    parser = StrOutputParser()
+    prompt = PromptTemplate.from_template("将以下文本翻译成中文：{text}")
+    chain = prompt | llm | parser
+    return chain.invoke({"text": ENGLISH_TEXT})
 
 
 # ============================================================
@@ -92,8 +105,21 @@ def exercise_1() -> str:
 
 def exercise_2() -> dict:
     """练习 2：RunnableLambda 统计+大写 Chain"""
-    # TODO：完成以下代码
-    pass
+    from langchain_core.runnables import RunnableLambda, RunnableParallel
+
+    def word_count(text: str) -> int:
+        return len(text.split())
+
+    def uppercase(text: str) -> str:
+        return text.upper()
+
+    parallel = RunnableParallel(
+        {
+            "upper": RunnableLambda(uppercase),
+            "count": RunnableLambda(word_count),
+        }
+    )
+    return parallel.invoke("Hello World")
 
 
 # ============================================================
@@ -127,16 +153,73 @@ def exercise_2() -> dict:
 
 def exercise_3() -> dict:
     """练习 3：LCEL Chain 组合翻译 + 摘要"""
+    from dotenv import load_dotenv, find_dotenv
+    from langchain_core.prompts import PromptTemplate
+    from langchain_openai import ChatOpenAI
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.runnables import RunnableLambda, RunnableParallel
+
+    load_dotenv(find_dotenv())
+
     if not os.getenv("OPENAI_API_KEY"):
         return {"translated": "[跳过]", "summary": "[跳过]"}
 
+    # -----------------------------------------------
+    # 错误写法（已注释）—— 问题在于：
+    #   1. translate_chain | extract | summarize_chain 后
+    #      summarize 的结果直接覆盖了 translated，
+    #      导致 format_output(x) 收到的是字符串而非 dict，
+    #      x["translated"] 会报 KeyError
+    #
+    # def extract(x: str) -> dict:
+    #     return {"text": x}
+    #
+    # full_chain = translate_chain | RunnableLambda(extract) | summarize_chain
+    # final_chain = full_chain | RunnableLambda(format_output)
+    # return final_chain.invoke({"text": ARTICLE_TEXT})
+    # -----------------------------------------------
+
     # TODO：完成以下代码
-    pass
+    llm = ChatOpenAI(model="MiniMax-M2.7")
+    parser = StrOutputParser()
+
+    # 翻译链
+    translate_prompt = PromptTemplate.from_template("将以下文本翻译成中文：{text}")
+    translate_chain = translate_prompt | llm | parser
+
+    # 摘要链
+    summarize_prompt = PromptTemplate.from_template("请用一句话总结以下内容：{text}")
+    summarize_chain = summarize_prompt | llm | parser
+
+    # 数据转换：translate 的字符串 → {"text": ...} 传给 summarize
+    def extract(x: str) -> dict:
+        return {"text": x}
+
+    # 用 RunnableParallel 并行：
+    #   - translated 分支：从 {"text": ...} 中取出翻译后的字符串
+    #   - summary 分支：把 {"text": ...} 送入摘要链，输出摘要字符串
+    #
+    # 注意：RunnableParallel 收到 dict 后，每个分支都收到同样的 dict。
+    #   所以 "translated" 要用 lambda x: x["text"] 取字符串，
+    #   而不是 lambda x: x（那会返回整个 dict {"text": "..."}）
+    full_chain = (
+        translate_chain
+        | RunnableLambda(extract)
+        | RunnableParallel(
+            {
+                "translated": RunnableLambda(lambda x: x["text"]),  # 从 dict 取字符串
+                "summary": summarize_chain,  # 送入摘要链
+            }
+        )
+    )
+
+    return full_chain.invoke({"text": ARTICLE_TEXT})
 
 
 # ============================================================
 # ============ 以下为单元测试 ===================================
 # ============================================================
+
 
 class TestExercise1(unittest.TestCase):
     """练习1：LCEL 管道组合翻译"""
@@ -149,6 +232,7 @@ class TestExercise1(unittest.TestCase):
 
     def test_contains_chinese(self):
         import re
+
         result = exercise_1()
         if not os.getenv("OPENAI_API_KEY"):
             self.skipTest("需要 OPENAI_API_KEY")
@@ -196,7 +280,8 @@ class TestExercise2(unittest.TestCase):
         """验证 RunnableLambda 返回正确的类型"""
         from langchain_core.runnables import RunnableLambda
 
-        def dummy(x): return x
+        def dummy(x):
+            return x
 
         r = RunnableLambda(dummy)
         self.assertTrue(hasattr(r, "invoke"))
@@ -227,10 +312,12 @@ class TestExercise3(unittest.TestCase):
         """验证 RunnableParallel 能正确组合多个链"""
         from langchain_core.runnables import RunnableParallel, RunnableLambda
 
-        parallel = RunnableParallel({
-            "upper": RunnableLambda(lambda x: x.upper()),
-            "lower": RunnableLambda(lambda x: x.lower()),
-        })
+        parallel = RunnableParallel(
+            {
+                "upper": RunnableLambda(lambda x: x.upper()),
+                "lower": RunnableLambda(lambda x: x.lower()),
+            }
+        )
         result = parallel.invoke("Hello")
         self.assertEqual(result["upper"], "HELLO")
         self.assertEqual(result["lower"], "hello")

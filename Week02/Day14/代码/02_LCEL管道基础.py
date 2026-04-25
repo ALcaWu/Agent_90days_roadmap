@@ -26,6 +26,13 @@
 """
 
 import os
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
+api_key = os.getenv("OPENAI_API_KEY")
+print(api_key)  # 测试用，确认能读到
+
 
 # ============================================================
 # 一、最简单的 LCEL 管道
@@ -39,6 +46,8 @@ def demo_simple_pipeline():
 
     注意：需要设置 OPENAI_API_KEY 环境变量才能实际运行
     """
+
+    print(os.getenv("OPENAI_API_KEY"))
     if not os.getenv("OPENAI_API_KEY"):
         print("[跳过] 未设置 OPENAI_API_KEY，展示代码结构")
         print("  chain = prompt | llm | parser")
@@ -50,12 +59,10 @@ def demo_simple_pipeline():
     from langchain_core.output_parsers import StrOutputParser
 
     # 组件 1: Prompt 模板
-    prompt = PromptTemplate.from_template(
-        "请用一段话介绍 {topic}，不超过 50 字"
-    )
+    prompt = PromptTemplate.from_template("请用一段话介绍 {topic}，不超过 50 字")
 
     # 组件 2: Chat Model（使用 gpt-4o-mini 便宜模型）
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+    llm = ChatOpenAI(model="MiniMax-M2.7", temperature=0.7)
 
     # 组件 3: Output Parser（把 LLM 输出转成字符串）
     parser = StrOutputParser()
@@ -93,7 +100,7 @@ def demo_pipeline_data_flow():
     最后一步决定返回类型：StrOutputParser → str
     """
     print("[管道数据转换流程]")
-    print("  输入: {\"topic\": \"Python\"}")
+    print('  输入: {"topic": "Python"}')
     print("  Step 1: PromptTemplate.invoke() → PromptValue")
     print("  Step 2: ChatModel.invoke(PromptValue) → AIMessage")
     print("  Step 3: StrOutputParser.invoke(AIMessage) → str")
@@ -106,17 +113,13 @@ def demo_pipeline_data_flow():
         return {"prompt_value": f"请介绍 {data['topic']}"}
 
     def step2(data):
-        return {"llm_response": f"[模拟 LLM 回复：关于 {data['prompt_value'][5:]}的知识]"}
+        return {"llm_response": f"[模拟 LLM 回复：关于 {data['prompt_value']}的知识]"}
 
     def step3(data):
         return data["llm_response"]
 
     # 等价的 LCEL 链（用普通函数演示）
-    chain = (
-        RunnableLambda(step1)
-        | RunnableLambda(step2)
-        | RunnableLambda(step3)
-    )
+    chain = RunnableLambda(step1) | RunnableLambda(step2) | RunnableLambda(step3)
 
     result = chain.invoke({"topic": "Python"})
     print(f"[模拟 LCEL 链] 最终结果: {result}")
@@ -152,11 +155,13 @@ def demo_batch():
 
     chain = RunnableLambda(lambda x: f"回答: {x['question']}")
 
-    results = chain.batch([
-        {"question": "什么是 Python？"},
-        {"question": "什么是 LangChain？"},
-        {"question": "什么是 LCEL？"},
-    ])
+    results = chain.batch(
+        [
+            {"question": "什么是 Python？"},
+            {"question": "什么是 LangChain？"},
+            {"question": "什么是 LCEL？"},
+        ]
+    )
 
     for i, r in enumerate(results, 1):
         print(f"  结果 {i}: {r}")
